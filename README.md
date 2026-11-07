@@ -39,7 +39,7 @@ m_worst = y (w.x + b) - epsilon ||w||_q
 | Input perturbation ball | Dual weight norm | A returned worst-case perturbation |
 |---|---|---|
 | L1 | max absolute weight | Put the full budget on the first maximum-absolute-weight coordinate, opposite `y*w` |
-| L2 | Euclidean weight norm | `-epsilon*y*w/||w||_2` |
+| L2 | Euclidean weight norm | `-epsilon*y*w / EuclideanNorm(w)` |
 | L-infinity | sum of absolute weights | `-epsilon*y*sign(w)` |
 
 Zero weights get a zero perturbation. At L1 ties, the first maximizing coordinate is chosen deterministically. These witnesses attain the lower margin in real arithmetic. The input domain is **all real coordinates**, without feature boxes or clipping. Bias is not perturbed. The implementation evaluates the identity in floating point; it is not an outward-rounded or interval-arithmetic proof. Near-boundary rounding must not be used as a safety guarantee.
