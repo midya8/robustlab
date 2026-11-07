@@ -4,6 +4,7 @@ import os
 import sys
 from .core import audit, fit
 from .demo import demo
+from .exact import exact_audit, exact_demo
 
 
 def _pairs(items):
@@ -28,18 +29,25 @@ def main(argv=None):
     p = argparse.ArgumentParser(description='Linear classifier robustness under explicit norm balls')
     sub = p.add_subparsers(dest='command', required=True)
     sub.add_parser('demo')
+    sub.add_parser('exact-demo')
     a = sub.add_parser('audit')
     a.add_argument('model'); a.add_argument('data')
+    e = sub.add_parser('exact-audit')
+    e.add_argument('model'); e.add_argument('data')
     f = sub.add_parser('fit')
     f.add_argument('data'); f.add_argument('--steps', type=int, default=1000)
     f.add_argument('--rate', type=float, default=.1); f.add_argument('--l2', type=float, default=.001)
-    for parser in (a, f):
+    for parser in (a, f, e):
         parser.add_argument('--norm', choices=('l1', 'l2', 'linf'), default='linf')
         parser.add_argument('--epsilon', type=float, default=0.0)
     args = p.parse_args(argv)
     try:
         if args.command == 'demo':
             out = demo()
+        elif args.command == 'exact-demo':
+            out = exact_demo()
+        elif args.command == 'exact-audit':
+            out = exact_audit(load(args.model), load(args.data), norm=args.norm, epsilon=args.epsilon)
         elif args.command == 'audit':
             out = audit(load(args.model), load(args.data), norm=args.norm, epsilon=args.epsilon)
         else:
