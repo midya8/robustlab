@@ -27,5 +27,8 @@ jobs:
           python-version: '3.12'
       - run: python -m robustlab demo > /tmp/demo.json
       - run: PYTHONPATH=. python examples/render_audit.py --check
+      - run: python -m robustlab exact-demo > /tmp/exact-demo.json
+      - run: PYTHONPATH=. python examples/render_exact.py --check
+      - run: python -m robustlab exact-audit examples/model.json examples/data.json --norm linf --epsilon 0.1
       - run: python -m robustlab audit examples/model.json examples/data.json --norm l2 --epsilon 0.4
       - run: python -m robustlab fit examples/data.json --norm linf --epsilon 0.3 --steps 100
