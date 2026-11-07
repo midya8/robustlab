@@ -5,6 +5,7 @@ import sys
 from .core import audit, fit
 from .demo import demo
 from .exact import exact_audit, exact_demo
+from .box import box_audit, box_demo
 
 
 def _pairs(items):
@@ -30,6 +31,9 @@ def main(argv=None):
     sub = p.add_subparsers(dest='command', required=True)
     sub.add_parser('demo')
     sub.add_parser('exact-demo')
+    sub.add_parser('box-demo')
+    c = sub.add_parser('box-audit')
+    c.add_argument('model'); c.add_argument('data'); c.add_argument('bounds')
     a = sub.add_parser('audit')
     a.add_argument('model'); a.add_argument('data')
     e = sub.add_parser('exact-audit')
@@ -37,13 +41,17 @@ def main(argv=None):
     f = sub.add_parser('fit')
     f.add_argument('data'); f.add_argument('--steps', type=int, default=1000)
     f.add_argument('--rate', type=float, default=.1); f.add_argument('--l2', type=float, default=.001)
-    for parser in (a, f, e):
+    for parser in (a, f, e, c):
         parser.add_argument('--norm', choices=('l1', 'l2', 'linf'), default='linf')
         parser.add_argument('--epsilon', type=float, default=0.0)
     args = p.parse_args(argv)
     try:
         if args.command == 'demo':
             out = demo()
+        elif args.command == 'box-demo':
+            out = box_demo()
+        elif args.command == 'box-audit':
+            out = box_audit(load(args.model), load(args.data), load(args.bounds), norm=args.norm, epsilon=args.epsilon)
         elif args.command == 'exact-demo':
             out = exact_demo()
         elif args.command == 'exact-audit':
