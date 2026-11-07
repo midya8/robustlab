@@ -12,17 +12,17 @@ For nonzero weights, positive-margin clean rows have an open certified-radius in
 
 ## Robust objective, not a post-hoc attack metric
 
-The inner maximum of logistic loss is obtained by minimizing its signed margin, because softplus of the negative margin is decreasing in that margin. Thus each row uses softplus(epsilon*dual_norm - y*score). Norm penalties outside the softplus would solve a different objective. A separate quadratic weight regularizer is explicit and does not include bias.
+The inner maximum of logistic loss is obtained by minimizing its signed margin, because softplus of the negative margin is decreasing in that margin. Thus each row uses `softplus(epsilon*dual_norm - y*score)`. Norm penalties outside the softplus would solve a different objective. A separate quadratic weight regularizer is explicit and does not include bias.
 
-For a selected subgradient g of the dual norm, d(loss)/d(w) is -sigmoid(-worst_margin) times (y*x - epsilon*g), plus l2*w. The bias derivative is -sigmoid(-worst_margin)*y. At nonsmooth points this is a selected subgradient of the convex objective, not a two-sided derivative. The zero vector is chosen for the Euclidean norm at zero, zero coordinates get sign zero for the L1 dual norm, and the first signed maximum coordinate is chosen for the infinity dual norm. All are valid choices.
+For a selected subgradient g of the dual norm, `d(loss)/d(w)` is `-sigmoid(-worst_margin)` times `(y*x - epsilon*g)`, plus `l2*w`. The bias derivative is `-sigmoid(-worst_margin)*y`. At nonsmooth points this is a selected subgradient of the convex objective, not a two-sided derivative. The zero vector is chosen for the Euclidean norm at zero, zero coordinates get sign zero for the L1 dual norm, and the first signed maximum coordinate is chosen for the infinity dual norm. All are valid choices.
 
 Training is deterministic fixed-step full-batch descent from zero. It exposes the exact rate, update count, radius, regularizer and checkpoint stride. No convergence, exact optimum or monotonic-loss claim is made; constant steps can oscillate at kinks. The final loss is recomputed at the returned parameters, not the pre-update parameters. Evaluation does not choose a checkpoint, threshold, fixture or seed.
 
-For n rows and d dimensions, an audit costs O(n*d) time and output space. Each optimizer update costs O(n*d); memory is O(n*d) for validated input plus O(d) gradients and at most about 200 checkpoint records. Full audit witnesses are O(n*d). The fit work cap is checked before any objective calculation. The 1-MiB CLI cap is applied by bounded binary reading, rather than a potentially racy file-size-only check.
+For n rows and d dimensions, an audit costs `O(n*d)` time and output space. Each optimizer update costs `O(n*d)`; memory is `O(n*d)` for validated input plus `O(d)` gradients and at most about 200 checkpoint records. Full audit witnesses are `O(n*d)`. The fit work cap is checked before any objective calculation. The 1-MiB CLI cap is applied by bounded binary reading, rather than a potentially racy file-size-only check.
 
 ## Fixed fixture and two gate directions
 
-Training uses all products y in {-1,+1}, a in {.75,.9,1.05,1.2,-1}, b in {.16,.20,.24}, with x=(y*a,y*b). Holdout uses a in {.8,.95,1.1,1.25,-1.05}, b in {.17,.21,.25}. Each split contains 30 rows; they are two supplied grids, not independent random draws or an estimate of population performance.
+Training uses all products y in {-1,+1}, a in {.75,.9,1.05,1.2,-1}, b in {.16,.20,.24}, with `x=(y*a,y*b)`. Holdout uses a in {.8,.95,1.1,1.25,-1.05}, b in {.17,.21,.25}. Each split contains 30 rows; they are two supplied grids, not independent random draws or an estimate of population performance.
 
 The same optimizer settings fit two arms; only training epsilon changes from 0 to .3. At holdout epsilon .3, ordinary training has clean/strict-robust accuracy 1.0/.2, while robust training has .8/.8. A predeclared .75 strict-robust gate fails on the ordinary arm and passes on the robust arm. Clean accuracy stays visible; the robust arm does not dominate it. Nothing removes the robust arm's tiny nonzero second weight or conditions publication on a favorable result.
 
