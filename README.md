@@ -79,7 +79,7 @@ The loss is the mean of `softplus(-y*s + epsilon*dual_norm(w))` plus `l2/2 * sum
 
 The selected norm subgradient is `sign(w)` for L-infinity input balls, normalized `w` for L2, and one signed maximum coordinate for L1. At zero or tied weights, these are valid subgradients, not claims of differentiability. Fixed learning rates can oscillate near a kink. The robust demo's small near-zero second weight remains reported rather than clipped away or presented as exact sparsity.
 
-56 tests cover the original float/training checks and exact-rational checks below. The original checks include:
+80 tests cover the original float/training checks and exact-rational checks below. The original checks include:
 
 - All L-infinity corners for 240 small model/label configurations, using independent rational arithmetic; separate L1-vertex references and an L2 Cauchy/10,000-direction circle check.
 - Hand-derived gradients against central finite differences for all three norms away from kinks, plus convex subgradient inequalities at zero/tied weights and a corner-enumerated robust-loss reference.
@@ -119,10 +119,47 @@ The API reuses the original schema/size/numeric checks and adds a preflight cap 
 
 An exact rational margin certifies the mathematical linear function with these exact stored coefficients over the stated real-valued threat ball. It does **not** certify the execution of an independent floating-point inference pipeline, its rounded attacks, preprocessing or hardware. The exact attack is rational, so rounding its coordinates can change a near-boundary result. All-real domain and strict-zero conventions still apply.
 
-Seventeen arithmetic/API/CLI tests add independent rational corner/vertex minima across 156 model/label/norm configurations, exact feasibility and attained-score reconstruction, both disagreement directions, binary-versus-decimal semantics, prediction disagreements, zero/tied weights, an actually executed 4,096-product boundary, preflight ordering and the smallest positive subnormal squared. Four more figure tests check all six displayed flags, numeric signs, coordinates, full metadata, regeneration and rejection of changed inputs. Total suite: 56 tests, with two reproducible SVGs.
+Seventeen arithmetic/API/CLI tests add independent rational corner/vertex minima across 156 model/label/norm configurations, exact feasibility and attained-score reconstruction, both disagreement directions, binary-versus-decimal semantics, prediction disagreements, zero/tied weights, an actually executed 4,096-product boundary, preflight ordering and the smallest positive subnormal squared. Four more figure tests check all six displayed flags, numeric signs, coordinates, full metadata, regeneration and rejection of changed inputs. That increment brought the suite to 56 tests and two reproducible SVGs; the box increment below brings it to 80 tests and three SVGs.
+
+## Exact box-constrained attacks: clipping is not the L1 solution
+
+`box_audit` solves a different, explicit threat set: the L1 or L-infinity ball intersected with supplied per-coordinate closed bounds. Every clean input must already lie inside the box. The original all-real audits and trained demo are unchanged.
+
+```python
+from robustlab import box_audit
+result = box_audit(
+    {'version': 1, 'weights': [4, 1], 'bias': -.25},
+    {'x': [[.0625, .75]], 'y': [1]},
+    {'lower': [0, 0], 'upper': [1, 1]},
+    norm='l1', epsilon=.625)
+```
+
+![Box-constrained minima versus a clipped candidate attack](assets/box-audit.svg)
+
+The hand-specified dyadic example has clean margin `3/4`. At L1 radius `5/8`, the old all-real attack spends its budget on coordinate 1. Clipping that attacked point back into the box leaves margin `+1/2`, which is only a feasible candidate's margin. The actual box-constrained minimum is `-1/16`: move `-1/16` in coordinate 1 and `-9/16` in coordinate 2. Declaring robustness from the positive clipped candidate would be wrong. Under L-infinity, independently clipping the adverse coordinate moves is optimal; those two curves overlap in the figure.
+
+For L1, the solver allocates movement to descending absolute weights, up to each coordinate's adverse-direction capacity. Equal weights use ascending coordinate index. It returns exact rational movement, attacked coordinates, norm, clean/worst/attained margins and a matching dual gain bound. For gains `g_i = abs(w_i)`, capacities `c_i`, movement `t_i`, nonnegative multipliers `lambda, mu_i` with `g_i <= lambda + mu_i` certify:
+
+```text
+sum(g_i*t_i) <= lambda*epsilon + sum(c_i*mu_i)
+```
+
+The returned primal gain equals that upper bound, with zero rational gap. Combined with the feasible attaining attack, this certifies the mathematical minimum, without trusting the greedy routine alone. For L-infinity, effective capacities are `min(c_i, epsilon)` and the independent-coordinate dual uses `lambda = 0`. Bias is fixed. Zero weights move nowhere; degenerate boxes and unused L1 budget are supported. Bounds, model values, inputs and epsilon mean their exact validated binary floats, as in `exact_audit`, not decimal fractions or a separately rounded inference pipeline.
+
+```sh
+python -m robustlab box-demo
+python -m robustlab box-audit examples/model.json examples/data.json examples/bounds.json --norm l1 --epsilon 0.3
+PYTHONPATH=. python examples/render_box.py --check
+```
+
+The box JSON requires exactly `lower` and `upper` vectors matching the model dimension; each finite coordinate has magnitude at most 1,000,000. Lower bounds may equal upper bounds but never exceed them; out-of-box clean rows are errors, not silently clipped. The same 128-coordinate/4,096-row validators and strict 1 MiB CLI file rules apply, with a separate 4,096 row-coordinate-product cap checked before rational conversion. L2 is explicitly rejected. No box-constrained training is implemented.
+
+Twenty new arithmetic/API/CLI tests include an independent full orthant-polytope vertex oracle on 468 configurations, exact feasibility and primal/dual reconstruction, both labels/asymmetric bounds, saturated and degenerate boxes, zero/tied weights, monotonicity, nonbinding-box agreement with `exact_audit`, the clipping counterexample, subnormal arithmetic, isolation, actual cap execution and preflight/CLI rejection checks. Four new figure tests verify all 36 plotted coordinates, six polylines, shared domains, complete unchanged metadata and exact regeneration. Total: 80 tests and three reproducible SVGs. The fixture was directly specified, with no parameter search or prevalence claim.
+
+The bounded fractional-knapsack formulation is standard; see [Duke CS330 lecture 15, section 5.1](https://courses.cs.duke.edu/spring20/compsci330/lecture15scribe.pdf). The reduction to signed linear attacks, code, certificate records, exhaustive test oracle and figures here are independent implementations.
 
 ## Sources and limits
 
 This is an independent implementation of standard norm duality and robust linear logistic training, following the linear-case discussion in [Kolter and Madry's Adversarial Robustness tutorial](https://adversarial-ml-tutorial.org/adversarial_ml_slides_parts_2_3.pdf) and the logistic inner problem in [On Exact Solutions of the Inner Optimization Problem of Adversarial Robustness, Theorem 2](https://arxiv.org/html/2208.09449v3). Code, fixture, tests and figure are original to this repository; no external dataset or implementation is bundled.
 
-No nonlinear verification, multiclass classifier, perceptual metric, feature-box constraints, adaptive attack suite, distributional guarantee, calibrated uncertainty or production security claim. No paid service, model download, API key, GPU or network access is needed. MIT licensed.
+No nonlinear verification, multiclass classifier, perceptual metric, adaptive attack suite, distributional guarantee, calibrated uncertainty or production security claim. No paid service, model download, API key, GPU or network access is needed. MIT licensed.
