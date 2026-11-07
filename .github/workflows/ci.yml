@@ -32,3 +32,6 @@ jobs:
       - run: python -m robustlab exact-audit examples/model.json examples/data.json --norm linf --epsilon 0.1
       - run: python -m robustlab audit examples/model.json examples/data.json --norm l2 --epsilon 0.4
       - run: python -m robustlab fit examples/data.json --norm linf --epsilon 0.3 --steps 100
+      - run: python -m robustlab box-demo > /tmp/box-demo.json
+      - run: PYTHONPATH=. python examples/render_box.py --check
+      - run: python -m robustlab box-audit examples/model.json examples/data.json examples/bounds.json --norm l1 --epsilon 0.3
