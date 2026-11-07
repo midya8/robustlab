@@ -51,3 +51,29 @@ Resource bounds apply before fraction conversion: at most 4,096 row-coordinate p
 The selected false-positive fixture is the first matching case from the finite ordered grid described in README. This is intentional edge-case discovery, not a representative statistical experiment, and it does not alter the original two trained models or gate results. The exact SVG prints decimal approximations only for readability; its flags are computed from exact integer comparisons and its metadata carries the complete fractions.
 
 This is an exact mathematical audit of the supplied linear function and real-valued threat ball. A separately rounded inference/attack pipeline is another function and is not certified. No broader security claim follows from exact arithmetic.
+
+## Exact box intersection and a primal/dual certificate
+
+The optional `box_audit` API has its own explicit bounds, not a global reinterpretation of `audit` or `exact_audit`. Require a nonempty closed coordinate interval at every coordinate and require every clean row to be inside it, including endpoints. All accepted numeric values become exact binary rationals. L1 and L-infinity are supported; L2 is not.
+
+Let `s_i = -y*sign(w_i)`, `g_i = abs(w_i)`. A minimizer never needs movement opposite `s_i`: replacing such movement by zero preserves box feasibility (the clean point is in the box), uses no more norm budget and cannot worsen the minimization objective. Set zero-weight movement to zero. Thus movement amounts `t_i >= 0` have capacities `c_i = x_i-lower_i` when `s_i=-1`, or `upper_i-x_i` when `s_i=+1`. Minimize margin by maximizing gain `sum(g_i*t_i)`.
+
+For L-infinity, constraints separate as `0 <= t_i <= min(c_i,epsilon)`, so fill every effective capacity. The gain upper bound is the sum of gain times effective capacity, attained by that witness. Equivalently use zero budget multiplier and upper multipliers `g_i`.
+
+For L1, require `sum(t_i) <= epsilon` and `0 <= t_i <= c_i`. Sort coordinates by descending gain, then ascending index; fill capacity in order until budget or all useful capacity is exhausted. This is bounded fractional knapsack with unit movement costs, not a heuristic projection of the old attack. If budget is exhausted at a coordinate, choose its gain for `lambda`; if budget is zero, use the maximum gain; if budget remains after useful capacities fill, use zero. Set `mu_i = max(g_i-lambda,0)`. All are nonnegative and `g_i <= lambda+mu_i`. Therefore any feasible movement satisfies:
+
+```text
+sum(g_i*t_i)
+  <= lambda*sum(t_i) + sum(mu_i*t_i)
+  <= lambda*epsilon + sum(mu_i*c_i)
+```
+
+The chosen allocation attains this bound, including ties, a budget exactly equal to total useful capacity and degenerate capacities. The code asserts exact primal/dual equality, exact attained/minimum margin equality, box inclusion and norm feasibility before returning. The serialized certificate includes every allocation, effective upper capacity, budget multiplier, upper multiplier, primal gain, dual bound and zero gap. Returned rational numerators and positive denominators are strings. A consumer can reconstruct the inequalities using integers, without rerunning the sort.
+
+The L1 clipping counterexample is directly specified: weights `(4,1)`, bias `-1/4`, clean point `(1/16,3/4)`, label `+1`, box `[0,1]^2`, epsilon `5/8`. Clean margin is `3/4`. The all-real witness concentrates budget on the first coordinate; clipping it leaves `(0,3/4)` and margin `1/2`. The optimal box attack uses movement `(1/16,9/16)`, lands at `(0,3/16)` and attains `-1/16`. Gain is `13/16`; a dual is `lambda=1`, `mu=(3,0)`, giving `5/8 + 3/16 = 13/16`. A positive candidate attack margin is not a lower bound. For L-infinity, coordinate-wise clipping of the adverse-direction all-real witness is optimal. The demo retains both comparisons and the radius sweep, plus both strict gate directions. At radius 2 the box saturates and unused budget is allowed. The original fitted models, demo and first two figures are unchanged.
+
+An independent test oracle enumerates all sign orthants, each orthant's box corners, and intersections of the L1 budget plane with each box edge. These include the vertices of the orthant box intersected with the budget half-space. It minimizes the original signed affine score directly, not the gain-sorted routine. It checks 468 model/label/norm/budget configurations in dimensions 1..3. Other tests reconstruct the entire primal/dual certificate, witness and score; exercise asymmetric/degenerate/nonbinding boxes, both labels, zero/tied weights, saturated budget, binary/subnormal values, input/RNG isolation, actual 4,096-product execution, preflight ordering and strict CLI failures. Four SVG tests cover all 36 plotted points, six polylines, unchanged full metadata and reproduction. Suite total is 80 tests.
+
+The product cap is checked after ordinary finite validation but before constructing any Fraction. With `n` rows and `d` coordinates, sorting takes `O(d log d)` rational comparisons once; each row takes `O(d)` rational operations, apart from integer bit complexity. Output and retained data take `O(n*d)` rational values. Existing per-value magnitude limits bound integer-part growth but not denominators of very small binary floats. Exact rational arithmetic can still be slower than the unchanged float API. The 4,096-product cap is an operational limit, not a timing guarantee.
+
+No box-constrained training, general LP backend, nonlinear or multiclass verification, L2 box solver, decimal input semantics, calibrated risk or separately rounded execution certificate is claimed. The fractional-knapsack formulation is standard (Duke CS330 lecture 15, section 5.1: https://courses.cs.duke.edu/spring20/compsci330/lecture15scribe.pdf); the threat reduction, code, tests and illustrations here are original implementations.
