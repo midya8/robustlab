@@ -79,7 +79,7 @@ The loss is the mean of `softplus(-y*s + epsilon*dual_norm(w))` plus `l2/2 * sum
 
 The selected norm subgradient is `sign(w)` for L-infinity input balls, normalized `w` for L2, and one signed maximum coordinate for L1. At zero or tied weights, these are valid subgradients, not claims of differentiability. Fixed learning rates can oscillate near a kink. The robust demo's small near-zero second weight remains reported rather than clipped away or presented as exact sparsity.
 
-35 tests cover:
+56 tests cover the original float/training checks and exact-rational checks below. The original checks include:
 
 - All L-infinity corners for 240 small model/label configurations, using independent rational arithmetic; separate L1-vertex references and an L2 Cauchy/10,000-direction circle check.
 - Hand-derived gradients against central finite differences for all three norms away from kinks, plus convex subgradient inequalities at zero/tied weights and a corner-enumerated robust-loss reference.
@@ -88,6 +88,38 @@ The selected norm subgradient is `sign(w)` for L-infinity input balls, normalize
 - Both demo gate directions and every holdout witness. Four figure tests check all four bar coordinates, all 14 sweep points, full unchanged metadata, byte regeneration, input preservation and rejection of altered fits/attacks/fixtures.
 
 The references verify finite test families; they are not a machine-checked proof for arbitrary floating-point inputs. The SVG is generated from the complete unchanged demo, with the full fixture, models, settings, histories and audits embedded as metadata.
+
+## Exact rational boundary audits
+
+The float caveat can change a strict flag, not only its displayed last digit. `exact_audit` provides an independent arithmetic mode for **L1 and L-infinity only**:
+
+```python
+from robustlab import exact_audit
+
+model = {"version": 1, "weights": [0.1, 0.2], "bias": -0.30000000000000004}
+data = {"x": [[1.1, 1.1]], "y": [1]}
+proof = exact_audit(model, data, norm="linf", epsilon=0.1)
+```
+
+```sh
+python -m robustlab exact-demo
+python -m robustlab exact-audit examples/model.json examples/data.json --norm linf --epsilon 0.1
+PYTHONPATH=. python examples/render_exact.py --check
+```
+
+![Float and exact rational boundary signs](assets/exact-boundary.svg)
+
+For the stored binary numbers above, the float worst margin is about `+2.081668171e-17`, while the exact rational worst margin is negative, about `-2.775557562e-18`. Thus the ordinary float strict flag is true and the exact flag is false. The exact-demo also includes a cancellation case where float arithmetic misses a strictly positive margin and a dyadic exact-zero control.
+
+The first boundary fixture was found by a finite numeric edge-case search, not by random sampling: enumerate weights and coordinates from `[.1,.2,.3,.4,.7,1.1]` in two dimensions, epsilon from that same ordered list, set float bias to `epsilon*sum(weights)-sum(w_j*x_j)`, inspect labels -1 then +1, and retain the first float-positive/exact-nonpositive case. The cancellation case and dyadic control were directly constructed. These are selected numeric boundary examples, **not an estimate of disagreement frequency**. The original training fixture, results and SVG are unchanged.
+
+Every accepted number is converted to the exact rational value of the **validated binary float stored by Python**, following [`Fraction.from_float`](https://docs.python.org/3/library/fractions.html). This does not turn the decimal text `0.1` into the rational `1/10`. The model, input rows, epsilon, score, dual norm, clean/worst/attained margins, radius, delta and attacked coordinates are serialized as reduced numerator/positive-denominator **strings**. Signs and flags use integer comparisons, never a decimal rendering. Counts remain integers; the report includes the corresponding float margin/flags/prediction and disagreement counts. Rational witness feasibility and equality to the worst margin can be checked without rounding it back to float.
+
+The API reuses the original schema/size/numeric checks and adds a preflight cap of 4,096 row-coordinate products before any fraction work. L2 is rejected explicitly: its general worst margin and attaining direction can be irrational. The CLI shares the strict duplicate-key/file-size/error handling. Neither the inputs nor the original float audit are changed.
+
+An exact rational margin certifies the mathematical linear function with these exact stored coefficients over the stated real-valued threat ball. It does **not** certify the execution of an independent floating-point inference pipeline, its rounded attacks, preprocessing or hardware. The exact attack is rational, so rounding its coordinates can change a near-boundary result. All-real domain and strict-zero conventions still apply.
+
+Seventeen arithmetic/API/CLI tests add independent rational corner/vertex minima across 156 model/label/norm configurations, exact feasibility and attained-score reconstruction, both disagreement directions, binary-versus-decimal semantics, prediction disagreements, zero/tied weights, an actually executed 4,096-product boundary, preflight ordering and the smallest positive subnormal squared. Four more figure tests check all six displayed flags, numeric signs, coordinates, full metadata, regeneration and rejection of changed inputs. Total suite: 56 tests, with two reproducible SVGs.
 
 ## Sources and limits
 
