@@ -1,6 +1,6 @@
 # RobustLab
 
-RobustLab computes worst-case margins and attacks for binary linear classifiers. It includes robust logistic training, exact rational boundary checks and box-constrained attacks. Each report names its threat set and returns the attack that attains the minimum margin. It uses only Python's standard library.
+RobustLab computes worst-case margins and attacks for binary linear classifiers. It includes robust logistic training, exact rational boundary checks and box-constrained attacks. The audits name their threat set and return the attack that attains the minimum margin. It uses only Python's standard library.
 
 These are audits of a specified linear score and threat set. They do not certify a neural network, an image preprocessing pipeline or an unspecified real-world attack.
 
