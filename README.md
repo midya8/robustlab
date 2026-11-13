@@ -1,14 +1,26 @@
 # RobustLab
 
-A dependency-free adversarial robustness lab for **binary linear classifiers**. Exact norm-ball worst-case margins, attainable perturbation witnesses, hand-derived robust logistic subgradients, and a deliberately visible clean/robust trade-off.
+RobustLab computes worst-case margins and attacks for binary linear classifiers. It includes robust logistic training, exact rational boundary checks and box-constrained attacks. Each report names its threat set and returns the attack that attains the minimum margin. It uses only Python's standard library.
 
-The point is to make the threat set and the limits inspectable. An analytic certificate for a linear score is not a certificate for a neural network, an image preprocessing pipeline, or an unspecified real-world attack.
+These are audits of a specified linear score and threat set. They do not certify a neural network, an image preprocessing pipeline or an unspecified real-world attack.
 
 ![Clean and robust accuracy, with a radius sweep](assets/robustness-audit.svg)
 
-## A gate that fails in one direction and passes in the other
+## Compare ordinary and robust training
 
 Run from the repository root with Python 3.10+:
+
+| Command | What it returns |
+|---|---|
+| `demo` | The fixed ordinary/robust training comparison, attacks and radius sweeps |
+| `audit` | Float margins and attacks over an all-real norm ball |
+| `fit` | A fixed-step robust logistic fit and loss checkpoints |
+| `exact-demo` | The selected float/rational boundary disagreements and a zero-margin control |
+| `exact-audit` | Rational margins and attacks for the stored binary inputs, for L1 or L-infinity |
+| `box-demo` | The clipping counterexample and box-constrained radius sweeps |
+| `box-audit` | Rational L1 or L-infinity attacks within supplied coordinate bounds, with primal/dual certificates |
+
+Pass a command after `python -m robustlab`. Input examples, limits and arithmetic conventions follow below.
 
 ```sh
 python -m robustlab demo
@@ -27,7 +39,7 @@ This fixture was specified directly: balanced labels, a strong coordinate with o
 
 The demo returns both models, training settings and sampled loss histories, all train and holdout row-level attacks, holdout radius sweeps, all input rows and gate booleans. Sweep summaries omit duplicated row records; use `audit` at any radius to recover them. Both arms remain visible regardless of gate outcomes. Robust training is fixed-step subgradient descent, not a claim of convergence to a global minimizer.
 
-## What is exact
+## Worst-case margins over norm balls
 
 For score `s(x) = w.x + b`, label `y` in `{-1,+1}`, and a perturbation satisfying `||delta||_p <= epsilon`, the minimum signed margin is:
 
