@@ -1,8 +1,8 @@
 # Design and audit notes
 
-## Threat set before algorithm
+## All-real norm-ball audits
 
-A model is a binary affine score, not a probability oracle or neural network. Each labeled row gets its own independent norm-bounded adversarial perturbation. The bias is fixed. There is no shared perturbation across rows, no box intersection, clipping, discretization, categorical encoding, normalization or preprocessing layer. These choices are part of the problem definition.
+The original `audit`, `exact_audit` and `fit` paths use a binary affine score with an all-real norm ball. Each labeled row gets its own independent perturbation; the bias is fixed. These paths do not intersect the ball with a box, clip coordinates or add discretization, categorical encoding, normalization or preprocessing. The separate `box_audit` contract is described below. None of these paths is a probability model or neural network.
 
 Hölder's inequality bounds the score change by epsilon times the dual weight norm. The selected perturbations attain that bound: a signed coordinate vertex for L1, the opposite weight direction for L2, and a signed corner for L-infinity. With zero weights the objective is constant and the zero perturbation attains it. Consequently the returned lower margin is an analytic minimum in real arithmetic, rather than a lower bound from an incomplete attack search. Float arithmetic can still round; the API states that caveat in every audit.
 
